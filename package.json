@@ -90,6 +90,10 @@
           "path": "/Applications"
         }
       ]
+    },
+    "publish": {
+      "provider": "github",
+      "releaseType": "release"
     }
   }
 }
