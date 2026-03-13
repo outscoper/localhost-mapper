@@ -1,0 +1,271 @@
+# ============================================================================
+# Dependencies
+# ============================================================================
+node_modules/
+.pnp
+.pnp.js
+.pnpm-store/
+
+# ============================================================================
+# Build Outputs
+# ============================================================================
+# Vite / Electron build outputs
+dist/
+dist-electron/
+release/
+
+# Build resources - keep icon files but ignore other build outputs
+build/*
+!build/.gitkeep
+!build/icon.svg
+!build/icon.png
+!build/icon.icns
+!build/icon.ico
+!build/entitlements*.plist
+!build/export-logo.sh
+!build/logo-preview.html
+
+# Production bundles
+*.tgz
+*.tar.gz
+*.zip
+
+# ============================================================================
+# Environment & Secrets
+# ============================================================================
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Secrets and certificates
+*.pem
+*.p12
+*.pfx
+*.cer
+*.cert
+*.key
+apple_cert.p12
+
+# Notary credentials
+.notary-config.json
+notarization.log
+
+# ============================================================================
+# IDE & Editor
+# ============================================================================
+# JetBrains
+.idea/
+*.iml
+*.ipr
+*.iws
+out/
+
+# VS Code
+.vscode/
+!.vscode/extensions.json
+!.vscode/settings.json
+!.vscode/launch.json
+*.code-workspace
+
+# Vim
+*.swp
+*.swo
+*~
+.netrwhist
+
+# Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+
+# Sublime Text
+*.sublime-workspace
+*.sublime-project
+
+# ============================================================================
+# OS Generated Files
+# ============================================================================
+# macOS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+.AppleDouble
+.LSOverride
+Icon?
+
+# macOS specific
+*.dmg
+*.app
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.stackdump
+[Dd]esktop.ini
+$RECYCLE.BIN/
+
+# Linux
+.directory
+.Trash-*
+.nfs*
+
+# ============================================================================
+# Logs
+# ============================================================================
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ============================================================================
+# Testing & Coverage
+# ============================================================================
+coverage/
+.nyc_output/
+*.lcov
+
+# Playwright
+playwright-report/
+test-results/
+playwright/.cache/
+
+# Cypress
+cypress/videos/
+cypress/screenshots/
+cypress/downloads/
+
+# ============================================================================
+# Cache & Temporary Files
+# ============================================================================
+# ESLint
+.eslintcache
+
+# Stylelint
+.stylelintcache
+
+# TypeScript
+*.tsbuildinfo
+
+# Vite
+.vite/
+*.local
+
+# Parcel
+.cache/
+.parcel-cache/
+
+# Turbo (monorepo)
+.turbo/
+
+# Microbundle
+dist/
+.rpt2_cache/
+.rts2_cache_cjs/
+.rts2_cache_es/
+.rts2_cache_umd/
+
+# Optional npm cache
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Optional REPL history
+.node_repl_history
+
+# ============================================================================
+# Package Manager
+# ============================================================================
+# npm
+package-lock.json
+.npmrc
+
+# yarn
+.yarn-integrity
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+.pnp.*
+.yarnrc
+
+# pnpm
+pnpm-lock.yaml
+.pnpm-debug.log*
+
+# ============================================================================
+# Electron Specific
+# ============================================================================
+# Electron Builder output
+release/
+
+# Electron forge
+.out/
+
+# Electron rebuild artifacts
+build/Release/
+
+# Signing & Notarization
+build/entitlements.mac.plist
+!build/entitlements.mac.plist
+*.provisionprofile
+
+# ============================================================================
+# Misc
+# ============================================================================
+# Temporary files
+*.tmp
+*.temp
+tmp/
+temp/
+
+# Backup files
+*.bak
+*.backup
+*.orig
+
+# Local Netlify folder
+.netlify
+
+# vercel
+.vercel
+
+# Sentry
+.sentryclirc
+
+# Local History for Visual Studio Code
+.history/
+
+# Ignore all local history of files
+.ionide
+
+# FuseBox cache
+.fusebox/
+
+# DynamoDB Local files
+.dynamodb/
+
+# TernJS port file
+.tern-port
+
+# Stores VSCode versions used for testing VSCode extensions
+.vscode-test
+
+# yarn v2
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+.pnp.*

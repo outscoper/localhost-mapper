@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Virtual Host Manager - Logo Preview</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px;
+      color: #fff;
+    }
+    
+    h1 {
+      margin-bottom: 40px;
+      font-weight: 300;
+      letter-spacing: 2px;
+      text-align: center;
+    }
+    
+    .preview-container {
+      display: flex;
+      gap: 60px;
+      flex-wrap: wrap;
+      justify-content: center;
+      align-items: center;
+    }
+    
+    .preview-box {
+      text-align: center;
+    }
+    
+    .preview-box h3 {
+      margin-bottom: 20px;
+      font-weight: 400;
+      color: #00d4ff;
+    }
+    
+    .logo-large {
+      width: 512px;
+      height: 512px;
+      filter: drop-shadow(0 20px 40px rgba(0, 212, 255, 0.3));
+    }
+    
+    .logo-medium {
+      width: 256px;
+      height: 256px;
+      filter: drop-shadow(0 10px 20px rgba(0, 212, 255, 0.3));
+    }
+    
+    .logo-small {
+      width: 128px;
+      height: 128px;
+      filter: drop-shadow(0 5px 10px rgba(0, 212, 255, 0.3));
+    }
+    
+    .logo-tiny {
+      width: 64px;
+      height: 64px;
+      filter: drop-shadow(0 3px 6px rgba(0, 212, 255, 0.3));
+    }
+    
+    .sizes-grid {
+      display: flex;
+      gap: 40px;
+      margin-top: 40px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    
+    .size-item {
+      text-align: center;
+    }
+    
+    .size-item span {
+      display: block;
+      margin-top: 10px;
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.6);
+    }
+    
+    .info {
+      margin-top: 60px;
+      padding: 30px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      max-width: 800px;
+    }
+    
+    .info h2 {
+      margin-bottom: 20px;
+      color: #00f5ff;
+      font-weight: 400;
+    }
+    
+    .info code {
+      background: rgba(0, 0, 0, 0.3);
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-family: 'Monaco', 'Menlo', monospace;
+      font-size: 14px;
+    }
+    
+    .info pre {
+      background: rgba(0, 0, 0, 0.3);
+      padding: 20px;
+      border-radius: 8px;
+      overflow-x: auto;
+      margin: 15px 0;
+    }
+    
+    .info pre code {
+      background: none;
+      padding: 0;
+    }
+    
+    .info p {
+      margin: 10px 0;
+      line-height: 1.6;
+    }
+    
+    @media (max-width: 768px) {
+      .logo-large {
+        width: 300px;
+        height: 300px;
+      }
+      
+      .logo-medium {
+        width: 150px;
+        height: 150px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>🚀 Virtual Host Manager — Logo Preview</h1>
+  
+  <div class="preview-container">
+    <div class="preview-box">
+      <h3>App Icon (1024×1024)</h3>
+      <img src="icon.svg" alt="Logo Large" class="logo-large">
+    </div>
+  </div>
+  
+  <div class="sizes-grid">
+    <div class="size-item">
+      <img src="icon.svg" alt="256px" class="logo-medium">
+      <span>256×256</span>
+    </div>
+    <div class="size-item">
+      <img src="icon.svg" alt="128px" class="logo-small">
+      <span>128×128</span>
+    </div>
+    <div class="size-item">
+      <img src="icon.svg" alt="64px" class="logo-tiny">
+      <span>64×64</span>
+    </div>
+    <div class="size-item">
+      <img src="icon.svg" alt="32px" width="32" height="32">
+      <span>32×32</span>
+    </div>
+    <div class="size-item">
+      <img src="icon.svg" alt="16px" width="16" height="16">
+      <span>16×16</span>
+    </div>
+  </div>
+  
+  <div class="info">
+    <h2>📦 Export Instructions</h2>
+    <p>To use this logo in the Electron app, you need to export it to different formats:</p>
+    
+    <h3 style="margin-top: 20px; margin-bottom: 10px; color: #fff;">Option 1: Using Inkscape (Free)</h3>
+    <pre><code># Install Inkscape
+brew install inkscape
+
+# Export to PNG (all sizes)
+inkscape icon.svg --export-filename=icon.png --export-width=1024 --export-height=1024</code></pre>
+    
+    <h3 style="margin-top: 20px; margin-bottom: 10px; color: #fff;">Option 2: Using Online Tools</h3>
+    <p>1. Go to <a href="https://convertio.co/svg-png/" style="color: #00f5ff;">convertio.co/svg-png</a></p>
+    <p>2. Upload <code>icon.svg</code></p>
+    <p>3. Download PNG at 1024×1024</p>
+    
+    <h3 style="margin-top: 20px; margin-bottom: 10px; color: #fff;">Option 3: macOS App Icon Generation</h3>
+    <pre><code># After having icon.png (1024×1024), create .icns for macOS
+mkdir icon.iconset
+sips -z 16 16 icon.png --out icon.iconset/icon_16x16.png
+sips -z 32 32 icon.png --out icon.iconset/icon_16x16@2x.png
+sips -z 32 32 icon.png --out icon.iconset/icon_32x32.png
+sips -z 64 64 icon.png --out icon.iconset/icon_32x32@2x.png
+sips -z 128 128 icon.png --out icon.iconset/icon_128x128.png
+sips -z 256 256 icon.png --out icon.iconset/icon_128x128@2x.png
+sips -z 256 256 icon.png --out icon.iconset/icon_256x256.png
+sips -z 512 512 icon.png --out icon.iconset/icon_256x256@2x.png
+sips -z 512 512 icon.png --out icon.iconset/icon_512x512.png
+sips -z 1024 1024 icon.png --out icon.iconset/icon_512x512@2x.png
+iconutil -c icns icon.iconset
+rm -rf icon.iconset</code></pre>
+    
+    <p style="margin-top: 20px;"><strong>Required files for Electron:</strong></p>
+    <ul style="margin-left: 20px; line-height: 1.8;">
+      <li><code>build/icon.png</code> — 1024×1024 PNG (used by electron-builder)</li>
+      <li><code>build/icon.icns</code> — macOS app icon</li>
+      <li><code>build/icon.ico</code> — Windows app icon (if supporting Windows)</li>
+    </ul>
+  </div>
+</body>
+</html>

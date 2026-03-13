@@ -1,0 +1,2 @@
+# This file ensures the build directory is tracked by Git
+# Icon files (icon.svg, icon.png, icon.icns) are stored here for the Electron app

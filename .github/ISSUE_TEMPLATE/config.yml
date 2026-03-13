@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: GitHub Discussions
+    url: https://github.com/outscoper/localhost-mapper/discussions
+    about: Please ask and answer questions here
+  - name: Documentation
+    url: https://github.com/outscoper/localhost-mapper#readme
+    about: Check the README for usage instructions
+  - name: Contributing Guidelines
+    url: https://github.com/outscoper/localhost-mapper/blob/main/CONTRIBUTING.md
+    about: Please read before submitting issues or PRs

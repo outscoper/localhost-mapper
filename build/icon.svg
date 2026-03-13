@@ -1,0 +1,124 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <!-- Gradients -->
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1a1a2e"/>
+      <stop offset="50%" style="stop-color:#16213e"/>
+      <stop offset="100%" style="stop-color:#0f3460"/>
+    </linearGradient>
+    
+    <linearGradient id="glassGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:rgba(255,255,255,0.25)"/>
+      <stop offset="100%" style="stop-color:rgba(255,255,255,0.05)"/>
+    </linearGradient>
+    
+    <linearGradient id="glowGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#00d4ff"/>
+      <stop offset="100%" style="stop-color:#7b2cbf"/>
+    </linearGradient>
+    
+    <linearGradient id="accentGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#00f5ff"/>
+      <stop offset="100%" style="stop-color:#00a8ff"/>
+    </linearGradient>
+    
+    <!-- Glow filter -->
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    
+    <!-- Strong glow filter -->
+    <filter id="strongGlow" x="-100%" y="-100%" width="300%" height="300%">
+      <feGaussianBlur stdDeviation="8" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- Background with rounded corners -->
+  <rect x="32" y="32" width="960" height="960" rx="224" ry="224" fill="url(#bgGradient)"/>
+  
+  <!-- Outer glow ring -->
+  <rect x="48" y="48" width="928" height="928" rx="208" ry="208" 
+        fill="none" stroke="url(#glowGradient)" stroke-width="4" opacity="0.6" filter="url(#glow)"/>
+  
+  <!-- Inner glass panel -->
+  <rect x="112" y="112" width="800" height="800" rx="160" ry="160" 
+        fill="url(#glassGradient)" stroke="rgba(255,255,255,0.1)" stroke-width="2"/>
+  
+  <!-- Server/Host representation - Main server icon -->
+  <g transform="translate(512, 420)">
+    <!-- Server rack glow -->
+    <rect x="-130" y="-140" width="260" height="280" rx="20" 
+          fill="none" stroke="#00d4ff" stroke-width="2" opacity="0.3" filter="url(#glow)"/>
+    
+    <!-- Server unit 1 (top) -->
+    <rect x="-110" y="-120" width="220" height="70" rx="12" 
+          fill="rgba(0,212,255,0.1)" stroke="url(#accentGradient)" stroke-width="2"/>
+    <circle cx="-80" cy="-85" r="6" fill="#00f5ff" filter="url(#glow)"/>
+    <rect x="-60" y="-92" width="140" height="14" rx="7" 
+          fill="rgba(0,245,255,0.3)"/>
+    
+    <!-- Server unit 2 (middle) -->
+    <rect x="-110" y="-35" width="220" height="70" rx="12" 
+          fill="rgba(0,212,255,0.15)" stroke="url(#accentGradient)" stroke-width="2"/>
+    <circle cx="-80" cy="0" r="6" fill="#00f5ff" filter="url(#glow)"/>
+    <rect x="-60" y="-7" width="100" height="14" rx="7" 
+          fill="rgba(0,245,255,0.4)"/>
+    
+    <!-- Server unit 3 (bottom) -->
+    <rect x="-110" y="50" width="220" height="70" rx="12" 
+          fill="rgba(0,212,255,0.2)" stroke="url(#accentGradient)" stroke-width="2"/>
+    <circle cx="-80" cy="85" r="6" fill="#00f5ff" filter="url(#glow)"/>
+    <rect x="-60" y="78" width="120" height="14" rx="7" 
+          fill="rgba(0,245,255,0.5)"/>
+  </g>
+  
+  <!-- Globe/Network indicator at bottom -->
+  <g transform="translate(512, 780)">
+    <!-- Connection lines -->
+    <line x1="-60" y1="-20" x2="-100" y2="-60" stroke="#00d4ff" stroke-width="2" opacity="0.5"/>
+    <line x1="60" y1="-20" x2="100" y2="-60" stroke="#00d4ff" stroke-width="2" opacity="0.5"/>
+    <line x1="0" y1="20" x2="0" y2="60" stroke="#00d4ff" stroke-width="2" opacity="0.5"/>
+    
+    <!-- Nodes -->
+    <circle cx="-100" cy="-60" r="12" fill="#00f5ff" opacity="0.8" filter="url(#glow)"/>
+    <circle cx="100" cy="-60" r="12" fill="#00f5ff" opacity="0.8" filter="url(#glow)"/>
+    <circle cx="0" cy="60" r="12" fill="#7b2cbf" opacity="0.8" filter="url(#glow)"/>
+    
+    <!-- Center hub -->
+    <circle cx="0" cy="0" r="30" fill="url(#glassGradient)" stroke="url(#accentGradient)" stroke-width="3"/>
+    <circle cx="0" cy="0" r="20" fill="none" stroke="#00f5ff" stroke-width="2" opacity="0.6"/>
+    <circle cx="0" cy="0" r="8" fill="#00f5ff" filter="url(#strongGlow)"/>
+  </g>
+  
+  <!-- Decorative corner accents -->
+  <g opacity="0.6">
+    <!-- Top left -->
+    <path d="M 80 200 L 80 80 L 200 80" fill="none" stroke="#00d4ff" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="80" cy="80" r="6" fill="#00f5ff" filter="url(#glow)"/>
+    
+    <!-- Top right -->
+    <path d="M 824 80 L 944 80 L 944 200" fill="none" stroke="#00d4ff" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="944" cy="80" r="6" fill="#00f5ff" filter="url(#glow)"/>
+    
+    <!-- Bottom left -->
+    <path d="M 80 824 L 80 944 L 200 944" fill="none" stroke="#7b2cbf" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="80" cy="944" r="6" fill="#7b2cbf" filter="url(#glow)"/>
+    
+    <!-- Bottom right -->
+    <path d="M 824 944 L 944 944 L 944 824" fill="none" stroke="#7b2cbf" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="944" cy="944" r="6" fill="#7b2cbf" filter="url(#glow)"/>
+  </g>
+  
+  <!-- Scanline effect overlay -->
+  <rect x="32" y="32" width="960" height="960" rx="224" ry="224" 
+        fill="url(#glassGradient)" opacity="0.1" style="mix-blend-mode: overlay;"/>
+</svg>
