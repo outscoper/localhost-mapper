@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron';
-import type { OperationResult, HostEntry, VirtualHost, ServerStatus, CreateVhostData, AddHostData, PortMapping } from './types';
+import type { OperationResult, ServerStatus, CreateVhostData, AddHostData } from './types';
 
 // Expose protected methods that allow the renderer process to use
 // the ipcRenderer without exposing the entire object

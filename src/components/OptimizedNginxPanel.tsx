@@ -1,4 +1,4 @@
-import { memo, useState, useCallback, useMemo } from 'react';
+import { memo, useState, useCallback } from 'react';
 import { 
   Zap, 
   Plus, 

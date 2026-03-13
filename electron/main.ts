@@ -109,7 +109,7 @@ function createApplicationMenu(): void {
         { role: 'cut' },
         { role: 'copy' },
         { role: 'paste' },
-        { role: 'selectall' }
+        { role: 'selectAll' }
       ]
     },
     {
@@ -250,7 +250,7 @@ async function addHost(hostname: string, ip: string = '127.0.0.1', port?: number
     // Check if host already exists
     const checkCommand = `grep -q "${hostname}" ${HOSTS_FILE} && echo "EXISTS" || echo "NOT_EXISTS"`;
     
-    sudo.exec(checkCommand, sudoOptions, (checkError, stdout) => {
+    sudo.exec(checkCommand, sudoOptions, (_err, stdout) => {
       if (stdout?.toString().trim() === 'EXISTS') {
         resolve({ success: false, error: `Host ${hostname} already exists` });
         return;

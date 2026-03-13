@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import type { HostEntry, VirtualHost, ServerStatus, OperationResult } from '../types';
+import type { HostEntry, VirtualHost, ServerStatus } from '../types';
 import { getElectronAPI } from '../utils/electron';
 
 // Singleton cache for hosts data
