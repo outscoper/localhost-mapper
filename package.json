@@ -51,8 +51,9 @@
     "sudo-prompt": "^9.2.1"
   },
   "build": {
-    "appId": "com.virtualhostmanager.app",
-    "productName": "Virtual Host Manager",
+    "appId": "com.localhostmapper.app",
+    "productName": "Localhost Mapper",
+    "icon": "build/icon.icns",
     "directories": {
       "output": "release",
       "buildResources": "build"

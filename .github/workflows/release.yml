@@ -41,8 +41,8 @@ jobs:
         id: sha256
         run: |
           VERSION="${{ steps.version.outputs.VERSION }}"
-          ARM64_FILE="release/Virtual Host Manager-${VERSION}-arm64.dmg"
-          X64_FILE="release/Virtual Host Manager-${VERSION}.dmg"
+          ARM64_FILE="release/Localhost Mapper-${VERSION}-arm64.dmg"
+          X64_FILE="release/Localhost Mapper-${VERSION}.dmg"
           echo "SHA256_ARM64=$(shasum -a 256 "$ARM64_FILE" | awk '{print $1}')" >> $GITHUB_OUTPUT
           echo "SHA256_X64=$(shasum -a 256 "$X64_FILE" | awk '{print $1}')" >> $GITHUB_OUTPUT
 
@@ -62,23 +62,26 @@ jobs:
 
             on_arm do
               sha256 "${SHA256_ARM64}"
-              url "https://github.com/outscoper/localhost-mapper/releases/download/v#{version}/Virtual-Host-Manager-#{version}-arm64.dmg"
+              url "https://github.com/outscoper/localhost-mapper/releases/download/v#{version}/Localhost-Mapper-#{version}-arm64.dmg"
             end
 
             on_intel do
               sha256 "${SHA256_X64}"
-              url "https://github.com/outscoper/localhost-mapper/releases/download/v#{version}/Virtual-Host-Manager-#{version}.dmg"
+              url "https://github.com/outscoper/localhost-mapper/releases/download/v#{version}/Localhost-Mapper-#{version}.dmg"
             end
 
-            name "Virtual Host Manager"
+            name "Localhost Mapper"
             desc "Map localhost ports to custom domains using Apache reverse proxy"
             homepage "https://github.com/outscoper/localhost-mapper"
 
-            app "Virtual Host Manager.app"
+            app "Localhost Mapper.app"
 
             postflight do
               system_command "/usr/bin/xattr",
-                args: ["-dr", "com.apple.quarantine", "#{appdir}/Virtual Host Manager.app"],
+                args: ["-dr", "com.apple.quarantine", "#{appdir}/Localhost Mapper.app"],
+                sudo: false
+              system_command "/usr/bin/mdimport",
+                args: ["#{appdir}/Localhost Mapper.app"],
                 sudo: false
             end
           end
