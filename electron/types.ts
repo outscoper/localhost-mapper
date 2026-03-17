@@ -23,6 +23,16 @@ export interface ServerStatus {
 export interface ProxyEntry {
   hostname: string;
   targetPort: number;
+  wsEnabled: boolean;
+}
+
+export type HealthIssueType = 'malformed_config' | 'missing_host_entry' | 'apache_config_error' | 'conflicting_config';
+
+export interface HealthIssue {
+  type: HealthIssueType;
+  hostname: string;
+  details: string;
+  fixable: boolean;
 }
 
 export interface OperationResult {
@@ -33,6 +43,7 @@ export interface OperationResult {
   vhosts?: VirtualHost[];
   status?: ServerStatus;
   proxies?: ProxyEntry[];
+  issues?: HealthIssue[];
 }
 
 export interface CreateVhostData {

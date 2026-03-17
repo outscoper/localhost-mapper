@@ -21,6 +21,16 @@ export interface ServerStatus {
 export interface ProxyEntry {
   hostname: string;
   targetPort: number;
+  wsEnabled: boolean;
+}
+
+export type HealthIssueType = 'malformed_config' | 'missing_host_entry' | 'apache_config_error' | 'conflicting_config';
+
+export interface HealthIssue {
+  type: HealthIssueType;
+  hostname: string;
+  details: string;
+  fixable: boolean;
 }
 
 export interface OperationResult {
@@ -31,6 +41,7 @@ export interface OperationResult {
   vhosts?: VirtualHost[];
   status?: ServerStatus;
   proxies?: ProxyEntry[];
+  issues?: HealthIssue[];
 }
 
 export interface CreateVhostData {
@@ -66,6 +77,9 @@ declare global {
       setupHelper: () => Promise<OperationResult>;
       createPortProxy: (data: { hostname: string; targetPort: number }) => Promise<OperationResult>;
       removePortProxy: (hostname: string) => Promise<OperationResult>;
+      migratePortProxies: () => Promise<OperationResult>;
+      checkProxyHealth: () => Promise<OperationResult>;
+      fixProxyIssues: () => Promise<OperationResult>;
       getApacheVhosts: () => Promise<OperationResult>;
       createApacheVhost: (data: CreateVhostData) => Promise<OperationResult>;
       removeApacheVhost: (serverName: string) => Promise<OperationResult>;

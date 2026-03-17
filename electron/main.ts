@@ -4,7 +4,7 @@ import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { exec } from 'child_process';
 import sudo from 'sudo-prompt';
-import type { OperationResult, HostEntry, VirtualHost, ServerStatus, CreateVhostData, AddHostData } from './types';
+import type { OperationResult, HealthIssue, HostEntry, VirtualHost, ServerStatus, CreateVhostData, AddHostData } from './types';
 
 // ES Module polyfills for __dirname and __filename
 const __filename = fileURLToPath(import.meta.url);
@@ -526,10 +526,16 @@ function buildHelperScript(): string {
     "      || printf '\\n127.0.0.1    %s\\n' \"$H\" >> /etc/hosts",
     '    /usr/bin/sed -i \'\' \'s|#LoadModule proxy_module libexec|LoadModule proxy_module libexec|\' "$HTTPD_CONF"',
     '    /usr/bin/sed -i \'\' \'s|#LoadModule proxy_http_module libexec|LoadModule proxy_http_module libexec|\' "$HTTPD_CONF"',
+    '    /usr/bin/sed -i \'\' \'s|#LoadModule proxy_wstunnel_module libexec|LoadModule proxy_wstunnel_module libexec|\' "$HTTPD_CONF"',
+    '    /usr/bin/sed -i \'\' \'s|#LoadModule rewrite_module libexec|LoadModule rewrite_module libexec|\' "$HTTPD_CONF"',
     '    cat > "${VHOSTS_DIR}/${H}-proxy.conf" << VHOSTEOF',
     '<VirtualHost *:80>',
     '    ServerName ${H}',
     '    ProxyPreserveHost On',
+    '    RewriteEngine on',
+    '    RewriteCond %{HTTP:Upgrade} websocket [NC]',
+    '    RewriteCond %{HTTP:Connection} upgrade [NC]',
+    '    RewriteRule ^/?(.*) "ws://127.0.0.1:${P}/$1" [P,L]',
     '    ProxyPass / http://127.0.0.1:${P}/',
     '    ProxyPassReverse / http://127.0.0.1:${P}/',
     '</VirtualHost>',
@@ -587,6 +593,22 @@ async function setupHelper(): Promise<OperationResult> {
 }
 
 // ============ PORT PROXY (Apache reverse proxy) ============
+
+function buildProxyVhostConfigContent(hostname: string, port: number): string {
+  return [
+    '<VirtualHost *:80>',
+    `    ServerName ${hostname}`,
+    '    ProxyPreserveHost On',
+    '    RewriteEngine on',
+    '    RewriteCond %{HTTP:Upgrade} websocket [NC]',
+    '    RewriteCond %{HTTP:Connection} upgrade [NC]',
+    `    RewriteRule ^/?(.*) "ws://127.0.0.1:${port}/$1" [P,L]`,
+    `    ProxyPass / http://127.0.0.1:${port}/`,
+    `    ProxyPassReverse / http://127.0.0.1:${port}/`,
+    '</VirtualHost>',
+  ].join('\n') + '\n';
+}
+
 
 async function ensureSetup(): Promise<OperationResult> {
   if (isSetupComplete()) return { success: true };
@@ -675,13 +697,180 @@ function getPortProxies(): OperationResult {
       const serverName = content.match(/ServerName\s+(\S+)/i)?.[1];
       const port = content.match(/ProxyPass\s+\/\s+http:\/\/127\.0\.0\.1:(\d+)\//i)?.[1];
       if (serverName && port) {
-        proxies.push({ hostname: serverName, targetPort: parseInt(port) });
+        proxies.push({ hostname: serverName, targetPort: parseInt(port), wsEnabled: content.includes('RewriteEngine') });
       }
     }
     return { success: true, proxies };
   } catch (e) {
     return { success: false, error: (e as Error).message };
   }
+}
+
+async function migratePortProxies(): Promise<OperationResult> {
+  const result = getPortProxies();
+  if (!result.success || !result.proxies) return result;
+
+  const needsMigration = result.proxies.filter(p => !p.wsEnabled);
+  if (needsMigration.length === 0) {
+    return { success: true, message: 'All configs already support WebSocket' };
+  }
+
+  const scriptLines = ['#!/bin/bash', 'set -e'];
+
+  // All hostnames are pre-validated by isSafeHostname — alphanumeric, dots, hyphens only
+  for (const proxy of needsMigration) {
+    const tempFile = `/tmp/${proxy.hostname}-proxy-ws.conf`;
+    try {
+      fs.writeFileSync(tempFile, buildProxyVhostConfigContent(proxy.hostname, proxy.targetPort));
+    } catch (e) {
+      return { success: false, error: (e as Error).message };
+    }
+    scriptLines.push(`cp "${tempFile}" "${APACHE_VHOSTS_DIR}${proxy.hostname}-proxy.conf"`);
+    scriptLines.push(`chmod 644 "${APACHE_VHOSTS_DIR}${proxy.hostname}-proxy.conf"`);
+    scriptLines.push(`rm -f "${tempFile}"`);
+  }
+
+  scriptLines.push('/usr/sbin/apachectl restart');
+
+  const scriptPath = '/tmp/localhost_mapper_migrate_ws.sh';
+  try {
+    fs.writeFileSync(scriptPath, scriptLines.join('\n') + '\n', { mode: 0o755 });
+  } catch (e) {
+    return { success: false, error: (e as Error).message };
+  }
+
+  return new Promise((resolve) => {
+    sudo.exec(`/bin/bash "${scriptPath}"`, sudoOptions, (error, _stdout, stderr) => {
+      try { fs.unlinkSync(scriptPath); } catch (_) { /* ignore */ }
+      if (error) {
+        resolve({ success: false, error: stderr?.toString().trim() || error.message });
+      } else {
+        resolve({ success: true, message: `Migrated ${needsMigration.length} config(s) with WebSocket support` });
+      }
+    });
+  });
+}
+
+// ============ PROXY HEALTH CHECK ============
+
+async function checkProxyHealth(): Promise<OperationResult> {
+  const issues: HealthIssue[] = [];
+
+  if (!fs.existsSync(APACHE_VHOSTS_DIR)) {
+    return { success: true, issues: [] };
+  }
+
+  let hostsContent = '';
+  try {
+    hostsContent = fs.readFileSync(HOSTS_FILE, 'utf8');
+  } catch (_) { /* if we can't read hosts, skip those checks */ }
+
+  // Collect ServerNames from our proxy configs to detect external conflicts
+  const ourServerNames = new Set<string>();
+
+  // --- Scan our proxy configs ---
+  for (const file of fs.readdirSync(APACHE_VHOSTS_DIR)) {
+    if (!file.endsWith('-proxy.conf')) continue;
+
+    let content: string;
+    try {
+      content = fs.readFileSync(path.join(APACHE_VHOSTS_DIR, file), 'utf8');
+    } catch (_) {
+      issues.push({ type: 'malformed_config', hostname: file.replace('-proxy.conf', ''), details: 'Cannot read config file', fixable: false });
+      continue;
+    }
+
+    const serverName = content.match(/ServerName\s+(\S+)/i)?.[1];
+    const port = content.match(/ProxyPass\s+\/\s+http:\/\/127\.0\.0\.1:(\d+)\//i)?.[1];
+
+    if (!serverName || !port) {
+      issues.push({ type: 'malformed_config', hostname: file.replace('-proxy.conf', ''), details: 'Missing ServerName or ProxyPass — config may be from an older install', fixable: false });
+      continue;
+    }
+
+    ourServerNames.add(serverName);
+
+    // Check /etc/hosts entry
+    if (hostsContent) {
+      const escaped = serverName.replace(/\./g, '\\.');
+      const pattern = new RegExp(`127\\.0\\.0\\.1[\\t ]+${escaped}([\\t ]|$)`, 'm');
+      if (!pattern.test(hostsContent)) {
+        issues.push({ type: 'missing_host_entry', hostname: serverName, details: `/etc/hosts entry missing for ${serverName} (port ${port})`, fixable: true });
+      }
+    }
+  }
+
+  // --- Scan non-app configs for conflicts ---
+  for (const file of fs.readdirSync(APACHE_VHOSTS_DIR)) {
+    if (file.endsWith('-proxy.conf')) continue; // already handled
+    if (!file.endsWith('.conf')) continue;
+
+    let content: string;
+    try {
+      content = fs.readFileSync(path.join(APACHE_VHOSTS_DIR, file), 'utf8');
+    } catch (_) { continue; }
+
+    const serverNameRegex = /ServerName\s+(\S+)/gi;
+    let match: RegExpExecArray | null;
+    while ((match = serverNameRegex.exec(content)) !== null) {
+      const name = match[1];
+      if (ourServerNames.has(name)) {
+        issues.push({ type: 'conflicting_config', hostname: name, details: `Pre-existing config "${file}" uses the same ServerName — may override your mapping`, fixable: false });
+      }
+    }
+  }
+
+  // --- Apache config syntax test ---
+  const apacheOk = await new Promise<{ ok: boolean; output: string }>((resolve) => {
+    exec('apachectl configtest 2>&1', (error, stdout, stderr) => {
+      const output = (stdout || stderr || '').trim();
+      resolve({ ok: !error, output });
+    });
+  });
+
+  if (!apacheOk.ok) {
+    issues.push({ type: 'apache_config_error', hostname: '', details: apacheOk.output || 'Apache config syntax test failed', fixable: false });
+  }
+
+  return { success: true, issues };
+}
+
+async function fixProxyIssues(): Promise<OperationResult> {
+  const healthResult = await checkProxyHealth();
+  if (!healthResult.success || !healthResult.issues) return healthResult;
+
+  const fixable = healthResult.issues.filter(i => i.fixable && i.type === 'missing_host_entry');
+  if (fixable.length === 0) {
+    return { success: true, message: 'No auto-fixable issues found' };
+  }
+
+  const scriptLines = ['#!/bin/bash', 'set -e'];
+  for (const issue of fixable) {
+    // isSafeHostname validated — only alphanumeric, dots, hyphens
+    const escaped = issue.hostname.replace(/\./g, '\\.');
+    scriptLines.push(
+      `/usr/bin/grep -qE "127\\.0\\.0\\.1[[:space:]]+${escaped}([[:space:]]|$)" /etc/hosts 2>/dev/null || printf '\\n127.0.0.1    ${issue.hostname}\\n' >> /etc/hosts`
+    );
+  }
+  scriptLines.push('/usr/sbin/apachectl restart');
+
+  const scriptPath = '/tmp/localhost_mapper_fix_health.sh';
+  try {
+    fs.writeFileSync(scriptPath, scriptLines.join('\n') + '\n', { mode: 0o755 });
+  } catch (e) {
+    return { success: false, error: (e as Error).message };
+  }
+
+  return new Promise((resolve) => {
+    sudo.exec(`/bin/bash "${scriptPath}"`, sudoOptions, (error, _stdout, stderr) => {
+      try { fs.unlinkSync(scriptPath); } catch (_) { /* ignore */ }
+      if (error) {
+        resolve({ success: false, error: stderr?.toString().trim() || error.message });
+      } else {
+        resolve({ success: true, message: `Fixed ${fixable.length} issue(s) and restarted Apache` });
+      }
+    });
+  });
 }
 
 // ============ SERVER CONTROL ============
@@ -788,6 +977,18 @@ ipcMain.handle('create-port-proxy', async (_event, data: { hostname: string; tar
 
 ipcMain.handle('remove-port-proxy', async (_event, hostname: string): Promise<OperationResult> => {
   return await removePortProxy(hostname);
+});
+
+ipcMain.handle('migrate-port-proxies', async (): Promise<OperationResult> => {
+  return await migratePortProxies();
+});
+
+ipcMain.handle('check-proxy-health', async (): Promise<OperationResult> => {
+  return await checkProxyHealth();
+});
+
+ipcMain.handle('fix-proxy-issues', async (): Promise<OperationResult> => {
+  return await fixProxyIssues();
 });
 
 ipcMain.handle('restart-apache', async (): Promise<OperationResult> => {

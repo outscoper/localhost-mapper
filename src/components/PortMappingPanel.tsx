@@ -11,7 +11,10 @@ import {
   X,
   ShieldCheck,
   AlertTriangle,
+  Wrench,
+  TriangleAlert,
 } from 'lucide-react';
+import type { HealthIssue } from '../types/electron';
 import { getElectronAPI } from '../utils/electron';
 import { ToastContainer, type ToastItem } from './Toast';
 
@@ -20,6 +23,7 @@ interface PortMapping {
   hostname: string;
   targetPort: number;
   active: boolean;
+  wsEnabled: boolean;
 }
 
 // ─── Edit Row ────────────────────────────────────────────────────────────────
@@ -115,6 +119,7 @@ const MappingRow = memo(function MappingRow({
           <span className="px-2 py-0.5 rounded bg-slate-700/50 text-slate-300">:80</span>
           <ArrowRight className="w-3.5 h-3.5 text-slate-500" />
           <span className="px-2 py-0.5 rounded bg-purple-500/20 text-purple-400">:{mapping.targetPort}</span>
+          <span className={`px-1.5 py-0.5 rounded text-xs font-sans border ${mapping.wsEnabled ? 'bg-cyan-500/15 text-cyan-400 border-cyan-500/25' : 'bg-slate-700/50 text-slate-500 border-slate-600/30'}`}>WS</span>
         </div>
       </td>
       <td className="py-3 px-4">
@@ -146,6 +151,7 @@ const PortMappingPanel = memo(function PortMappingPanel() {
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const [isSetupComplete, setIsSetupComplete] = useState<boolean | null>(null);
   const [formData, setFormData] = useState({ hostname: '', targetPort: 3000 });
+  const [healthIssues, setHealthIssues] = useState<HealthIssue[]>([]);
 
   // ── Load from system (source of truth = Apache vhost files) ──
   useEffect(() => {
@@ -164,6 +170,7 @@ const PortMappingPanel = memo(function PortMappingPanel() {
         hostname: p.hostname,
         targetPort: p.targetPort,
         active: true,
+        wsEnabled: p.wsEnabled,
       }));
       setMappings(loaded);
     });
@@ -180,6 +187,17 @@ const PortMappingPanel = memo(function PortMappingPanel() {
   useEffect(() => {
     getElectronAPI().checkSetup().then(r => setIsSetupComplete(r.complete));
   }, []);
+
+  // ── Passive health check (runs silently in background) ──
+  const runHealthCheck = useCallback(() => {
+    getElectronAPI().checkProxyHealth().then(r => {
+      setHealthIssues(r.issues ?? []);
+    }).catch(() => { /* silent — health check is non-critical */ });
+  }, []);
+
+  useEffect(() => {
+    runHealthCheck();
+  }, [runHealthCheck]);
 
   // ── Toast helpers ──
   const addToast = useCallback((message: string, type: 'success' | 'error') => {
@@ -208,6 +226,39 @@ const PortMappingPanel = memo(function PortMappingPanel() {
     }
   }, [addToast]);
 
+  // ── Auto-fix health issues ──
+  const handleFix = useCallback(async () => {
+    setLoading(true);
+    try {
+      const result = await getElectronAPI().fixProxyIssues();
+      if (result.success) {
+        addToast(result.message || 'Issues fixed', 'success');
+        runHealthCheck();
+      } else {
+        addToast(result.error || 'Fix failed', 'error');
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, [addToast, runHealthCheck]);
+
+  // ── Migrate ──
+  const handleMigrate = useCallback(async () => {
+    setLoading(true);
+    try {
+      const result = await getElectronAPI().migratePortProxies();
+      if (result.success) {
+        setMappings(prev => prev.map(m => ({ ...m, wsEnabled: true })));
+        addToast(result.message || 'Migration complete', 'success');
+        runHealthCheck();
+      } else {
+        addToast(result.error || 'Migration failed', 'error');
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, [addToast, runHealthCheck]);
+
   // ── Create ──
   const handleCreate = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
@@ -224,11 +275,13 @@ const PortMappingPanel = memo(function PortMappingPanel() {
           hostname: formData.hostname.trim(),
           targetPort: formData.targetPort,
           active: true,
+          wsEnabled: true,
         };
         setMappings(prev => [...prev, newMapping]);
         addToast(`http://${newMapping.hostname} → localhost:${newMapping.targetPort}`, 'success');
         setFormData({ hostname: '', targetPort: 3000 });
         setShowAddForm(false);
+        runHealthCheck();
       } else {
         addToast(result.error || 'Failed to create mapping', 'error');
       }
@@ -237,7 +290,7 @@ const PortMappingPanel = memo(function PortMappingPanel() {
     } finally {
       setLoading(false);
     }
-  }, [formData, addToast]);
+  }, [formData, addToast, runHealthCheck]);
 
   // ── Edit ──
   const handleEditSave = useCallback(async (id: string, newHostname: string, newPort: number) => {
@@ -268,7 +321,7 @@ const PortMappingPanel = memo(function PortMappingPanel() {
     } finally {
       setLoading(false);
     }
-  }, [mappings, addToast]);
+  }, [mappings, addToast, runHealthCheck]);
 
   // ── Remove ──
   const handleRemove = useCallback(async (id: string) => {
@@ -280,12 +333,13 @@ const PortMappingPanel = memo(function PortMappingPanel() {
       await getElectronAPI().removePortProxy(mapping.hostname);
       setMappings(prev => prev.filter(m => m.id !== id));
       addToast('Mapping removed', 'success');
+      runHealthCheck();
     } catch {
       addToast('Failed to remove mapping', 'error');
     } finally {
       setLoading(false);
     }
-  }, [mappings, addToast]);
+  }, [mappings, addToast, runHealthCheck]);
 
   // ── Toggle ──
   const handleToggle = useCallback((id: string) => {
@@ -332,6 +386,84 @@ const PortMappingPanel = memo(function PortMappingPanel() {
               <ShieldCheck className="w-4 h-4" />
               {loading ? 'Setting up…' : 'Authorize & Setup'}
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* WebSocket migration banner */}
+      {mappings.some(m => !m.wsEnabled) && (
+        <div className="glass-card-premium p-4 border border-cyan-500/30 bg-cyan-500/5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Network className="w-5 h-5 text-cyan-400 shrink-0" />
+              <div>
+                <p className="text-sm font-medium text-cyan-300">WebSocket upgrade available</p>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  {mappings.filter(m => !m.wsEnabled).length} mapping(s) don't support WebSocket yet.
+                  Migrate to enable <span className="font-mono">ws://</span> proxying.
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={handleMigrate}
+              disabled={loading}
+              className="glass-button-success flex items-center gap-2 text-sm"
+            >
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+              {loading ? 'Migrating…' : 'Migrate All'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Config health banner */}
+      {healthIssues.length > 0 && (
+        <div className="glass-card-premium p-4 border border-orange-500/30 bg-orange-500/5">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-start gap-3 flex-1 min-w-0">
+              <TriangleAlert className="w-5 h-5 text-orange-400 shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-orange-300">
+                  {healthIssues.length} config issue{healthIssues.length > 1 ? 's' : ''} detected
+                </p>
+                <ul className="mt-1.5 space-y-1">
+                  {healthIssues.map((issue, i) => (
+                    <li key={i} className="flex items-start gap-2 text-xs text-slate-400">
+                      <span className={`shrink-0 px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                        issue.type === 'apache_config_error' ? 'bg-red-500/20 text-red-400' :
+                        issue.type === 'conflicting_config'  ? 'bg-yellow-500/20 text-yellow-400' :
+                        issue.fixable ? 'bg-orange-500/20 text-orange-400' :
+                        'bg-slate-600/50 text-slate-400'
+                      }`}>
+                        {issue.type === 'missing_host_entry'   ? 'hosts'    :
+                         issue.type === 'malformed_config'      ? 'corrupt'  :
+                         issue.type === 'apache_config_error'   ? 'apache'   :
+                         'conflict'}
+                      </span>
+                      <span className="truncate">{issue.details}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              {healthIssues.some(i => i.fixable) && (
+                <button
+                  onClick={handleFix}
+                  disabled={loading}
+                  className="glass-button-success flex items-center gap-2 text-sm"
+                >
+                  <Wrench className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                  {loading ? 'Fixing…' : 'Auto-fix'}
+                </button>
+              )}
+              <button
+                onClick={() => setHealthIssues([])}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-700/50 transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         </div>
       )}

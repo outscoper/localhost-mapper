@@ -19,6 +19,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Port proxy (Apache reverse proxy for hostname → port mapping)
   createPortProxy: (data: { hostname: string; targetPort: number }): Promise<OperationResult> => ipcRenderer.invoke('create-port-proxy', data),
   removePortProxy: (hostname: string): Promise<OperationResult> => ipcRenderer.invoke('remove-port-proxy', hostname),
+  migratePortProxies: (): Promise<OperationResult> => ipcRenderer.invoke('migrate-port-proxies'),
+  checkProxyHealth: (): Promise<OperationResult> => ipcRenderer.invoke('check-proxy-health'),
+  fixProxyIssues: (): Promise<OperationResult> => ipcRenderer.invoke('fix-proxy-issues'),
 
   // Apache virtual hosts
   getApacheVhosts: (): Promise<OperationResult> => ipcRenderer.invoke('get-apache-vhosts'),
@@ -53,6 +56,9 @@ declare global {
       setupHelper: () => Promise<OperationResult>;
       createPortProxy: (data: { hostname: string; targetPort: number }) => Promise<OperationResult>;
       removePortProxy: (hostname: string) => Promise<OperationResult>;
+      migratePortProxies: () => Promise<OperationResult>;
+      checkProxyHealth: () => Promise<OperationResult>;
+      fixProxyIssues: () => Promise<OperationResult>;
       getApacheVhosts: () => Promise<OperationResult>;
       createApacheVhost: (data: CreateVhostData) => Promise<OperationResult>;
       removeApacheVhost: (serverName: string) => Promise<OperationResult>;
