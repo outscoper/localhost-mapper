@@ -28,15 +28,13 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
-      - name: Build and publish
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: pnpm build
+      - name: Build
+        run: pnpm exec tsc && pnpm exec vite build
 
-      - name: Publish release
+      - name: Package and publish
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release edit "${GITHUB_REF_NAME}" --draft=false --title "${GITHUB_REF_NAME}"
+        run: pnpm exec electron-builder --publish always
 
       - name: Get version
         id: version
