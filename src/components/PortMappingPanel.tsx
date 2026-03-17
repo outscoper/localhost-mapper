@@ -12,7 +12,6 @@ import {
   ShieldCheck,
   AlertTriangle,
   Wrench,
-  TriangleAlert,
 } from 'lucide-react';
 import type { HealthIssue } from '../types/electron';
 import { getElectronAPI } from '../utils/electron';
@@ -421,7 +420,7 @@ const PortMappingPanel = memo(function PortMappingPanel() {
         <div className="glass-card-premium p-4 border border-orange-500/30 bg-orange-500/5">
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-start gap-3 flex-1 min-w-0">
-              <TriangleAlert className="w-5 h-5 text-orange-400 shrink-0 mt-0.5" />
+              <AlertTriangle className="w-5 h-5 text-orange-400 shrink-0 mt-0.5" />
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-orange-300">
                   {healthIssues.length} config issue{healthIssues.length > 1 ? 's' : ''} detected

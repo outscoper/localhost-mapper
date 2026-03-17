@@ -690,7 +690,7 @@ function getPortProxies(): OperationResult {
     if (!fs.existsSync(APACHE_VHOSTS_DIR)) {
       return { success: true, proxies: [] };
     }
-    const proxies: Array<{ hostname: string; targetPort: number }> = [];
+    const proxies: Array<{ hostname: string; targetPort: number; wsEnabled: boolean }> = [];
     for (const file of fs.readdirSync(APACHE_VHOSTS_DIR)) {
       if (!file.endsWith('-proxy.conf')) continue;
       const content = fs.readFileSync(path.join(APACHE_VHOSTS_DIR, file), 'utf8');
