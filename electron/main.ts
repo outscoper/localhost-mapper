@@ -715,7 +715,15 @@ async function migratePortProxies(): Promise<OperationResult> {
     return { success: true, message: 'All configs already support WebSocket' };
   }
 
-  const scriptLines = ['#!/bin/bash', 'set -e'];
+  const scriptLines = [
+    '#!/bin/bash', 'set -e',
+    'HTTPD_CONF="/etc/apache2/httpd.conf"',
+    // Enable modules required for WebSocket proxying
+    `/usr/bin/sed -i '' 's|#LoadModule proxy_module libexec|LoadModule proxy_module libexec|' "$HTTPD_CONF"`,
+    `/usr/bin/sed -i '' 's|#LoadModule proxy_http_module libexec|LoadModule proxy_http_module libexec|' "$HTTPD_CONF"`,
+    `/usr/bin/sed -i '' 's|#LoadModule proxy_wstunnel_module libexec|LoadModule proxy_wstunnel_module libexec|' "$HTTPD_CONF"`,
+    `/usr/bin/sed -i '' 's|#LoadModule rewrite_module libexec|LoadModule rewrite_module libexec|' "$HTTPD_CONF"`,
+  ];
 
   // All hostnames are pre-validated by isSafeHostname — alphanumeric, dots, hyphens only
   for (const proxy of needsMigration) {
@@ -829,7 +837,13 @@ async function checkProxyHealth(): Promise<OperationResult> {
   });
 
   if (!apacheOk.ok) {
-    issues.push({ type: 'apache_config_error', hostname: '', details: apacheOk.output || 'Apache config syntax test failed', fixable: false });
+    const isMissingModule = /Invalid command|not included in the server configuration/i.test(apacheOk.output);
+    issues.push({
+      type: 'apache_config_error',
+      hostname: '',
+      details: apacheOk.output || 'Apache config syntax test failed',
+      fixable: isMissingModule,
+    });
   }
 
   return { success: true, issues };
@@ -839,19 +853,32 @@ async function fixProxyIssues(): Promise<OperationResult> {
   const healthResult = await checkProxyHealth();
   if (!healthResult.success || !healthResult.issues) return healthResult;
 
-  const fixable = healthResult.issues.filter(i => i.fixable && i.type === 'missing_host_entry');
-  if (fixable.length === 0) {
+  const allFixable = healthResult.issues.filter(i => i.fixable);
+  if (allFixable.length === 0) {
     return { success: true, message: 'No auto-fixable issues found' };
   }
 
-  const scriptLines = ['#!/bin/bash', 'set -e'];
-  for (const issue of fixable) {
+  const scriptLines = ['#!/bin/bash', 'set -e', `HTTPD_CONF="/etc/apache2/httpd.conf"`];
+
+  // Enable required Apache modules if any apache_config_error is fixable
+  if (allFixable.some(i => i.type === 'apache_config_error')) {
+    scriptLines.push(
+      `/usr/bin/sed -i '' 's|#LoadModule proxy_module libexec|LoadModule proxy_module libexec|' "$HTTPD_CONF"`,
+      `/usr/bin/sed -i '' 's|#LoadModule proxy_http_module libexec|LoadModule proxy_http_module libexec|' "$HTTPD_CONF"`,
+      `/usr/bin/sed -i '' 's|#LoadModule proxy_wstunnel_module libexec|LoadModule proxy_wstunnel_module libexec|' "$HTTPD_CONF"`,
+      `/usr/bin/sed -i '' 's|#LoadModule rewrite_module libexec|LoadModule rewrite_module libexec|' "$HTTPD_CONF"`,
+    );
+  }
+
+  // Restore missing /etc/hosts entries
+  for (const issue of allFixable.filter(i => i.type === 'missing_host_entry')) {
     // isSafeHostname validated — only alphanumeric, dots, hyphens
     const escaped = issue.hostname.replace(/\./g, '\\.');
     scriptLines.push(
       `/usr/bin/grep -qE "127\\.0\\.0\\.1[[:space:]]+${escaped}([[:space:]]|$)" /etc/hosts 2>/dev/null || printf '\\n127.0.0.1    ${issue.hostname}\\n' >> /etc/hosts`
     );
   }
+
   scriptLines.push('/usr/sbin/apachectl restart');
 
   const scriptPath = '/tmp/localhost_mapper_fix_health.sh';
@@ -867,7 +894,7 @@ async function fixProxyIssues(): Promise<OperationResult> {
       if (error) {
         resolve({ success: false, error: stderr?.toString().trim() || error.message });
       } else {
-        resolve({ success: true, message: `Fixed ${fixable.length} issue(s) and restarted Apache` });
+        resolve({ success: true, message: `Fixed ${allFixable.length} issue(s) and restarted Apache` });
       }
     });
   });
