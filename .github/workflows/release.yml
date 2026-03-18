@@ -28,6 +28,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
+      - name: Set version from tag
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          npm pkg set version="$VERSION"
+
       - name: Build
         run: pnpm exec tsc && pnpm exec vite build
 
